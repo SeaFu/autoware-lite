@@ -1,0 +1,20 @@
+<launch>
+  <!-- All navigation commands remain in the offline_nav namespace. -->
+  <node pkg="pure_pursuit" type="pure_pursuit" name="offline_pure_pursuit" output="screen">
+    <remap from="/final_waypoints" to="/offline_nav/final_waypoints"/>
+    <remap from="/current_pose" to="/offline_nav/current_pose"/>
+    <remap from="/current_velocity" to="/offline_nav/current_velocity"/>
+    <remap from="/config/waypoint_follower" to="/offline_nav/config/waypoint_follower"/>
+    <remap from="/twist_raw" to="/offline_nav/twist_raw"/>
+    <remap from="/ctrl_raw" to="/offline_nav/ctrl_raw"/>
+  </node>
+  <node pkg="twist_filter" type="twist_filter" name="offline_twist_filter" output="screen">
+    <remap from="/twist_raw" to="/offline_nav/twist_raw"/>
+    <remap from="/twist_cmd" to="/offline_nav/twist_cmd"/>
+    <!-- Some Autoware.AI versions also expose ControlCommand topics.
+         Keep these isolated so no global command topic is published. -->
+    <remap from="/ctrl_raw" to="/offline_nav/ctrl_raw"/>
+    <remap from="/ctrl_cmd" to="/offline_nav/ctrl_cmd"/>
+    <remap from="/config/twist_filter" to="/offline_nav/config/twist_filter"/>
+  </node>
+</launch>

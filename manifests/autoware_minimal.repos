@@ -1,0 +1,26 @@
+# Autoware.AI 1.14.0 minimal source set for Hunter/VLP-16 offline teaching.
+# Import from the repository root:
+#   mkdir -p ~/autoware.ai/src
+#   vcs import ~/autoware.ai/src < manifests/autoware_minimal.repos
+# GUI is NOT a ROS package and should NOT be imported into this workspace.
+repositories:
+  autoware/messages:
+    type: git
+    url: https://github.com/Autoware-AI/messages.git
+    version: 1.14.0
+  autoware/common:
+    type: git
+    url: https://github.com/Autoware-AI/common.git
+    version: 1.14.0
+  autoware/core_perception:
+    type: git
+    url: https://github.com/Autoware-AI/core_perception.git
+    version: 1.14.0
+  autoware/utilities:
+    type: git
+    url: https://github.com/Autoware-AI/utilities.git
+    version: 1.14.0
+  autoware/core_planning:
+    type: git
+    url: https://github.com/autowarefoundation/autoware_ai_planning.git
+    version: 1.14.0

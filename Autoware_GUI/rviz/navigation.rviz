@@ -1,0 +1,100 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+    Property Tree Widget:
+      Expanded: [ /Global Options1, /Waypoint Path1, /NDT Pose1, /Lookahead Target1 ]
+  - Class: rviz/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Global Options:
+    Background Color: 37; 43; 53
+    Fixed Frame: map
+    Frame Rate: 30
+  Displays:
+    - Class: rviz/Grid
+      Enabled: true
+      Name: Grid
+      Plane: XY
+      Plane Cell Count: 30
+      Cell Size: 1
+      Reference Frame: <Fixed Frame>
+    - Class: rviz/PointCloud2
+      Enabled: true
+      Name: PCD Map
+      Topic: /points_map
+      Queue Size: 10
+      Unreliable: false
+      Style: Flat Squares
+      Size (m): 0.07
+      Color Transformer: Intensity
+      Channel Name: intensity
+      Autocompute Intensity Bounds: true
+      Use rainbow: true
+      Alpha: 0.75
+    - Class: rviz/PointCloud2
+      Enabled: true
+      Name: Live Scan
+      Topic: /filtered_points
+      Queue Size: 5
+      Style: Flat Squares
+      Size (m): 0.05
+      Color Transformer: FlatColor
+      Color: 80; 255; 255
+      Alpha: 0.45
+    - Class: rviz/Path
+      Enabled: true
+      Name: Waypoint Path (full route)
+      Topic: /offline_nav/waypoint_path
+      Queue Size: 10
+      Color: 255; 165; 30
+      Alpha: 1
+      Line Style: Lines
+      Line Width: 0.08
+      Pose Style: None
+      Buffer Length: 1
+    - Class: rviz/Pose
+      Enabled: true
+      Name: NDT Pose
+      Topic: /ndt_pose
+      Shape: Arrow
+      Color: 255; 220; 50
+      Alpha: 1
+      Shaft Length: 0.9
+      Shaft Radius: 0.09
+      Head Length: 0.3
+      Head Radius: 0.2
+    - Class: rviz/Marker
+      Enabled: true
+      Name: Lookahead Target
+      Marker Topic: /next_target_mark
+      Queue Size: 10
+    - Class: rviz/Marker
+      Enabled: true
+      Name: Next Waypoint
+      Marker Topic: /next_waypoint_mark
+      Queue Size: 10
+    - Class: rviz/Marker
+      Enabled: true
+      Name: Lookahead Search Circle
+      Marker Topic: /search_circle_mark
+      Queue Size: 10
+    - Class: rviz/Marker
+      Enabled: true
+      Name: Pursuit Trajectory Circle
+      Marker Topic: /trajectory_circle_mark
+      Queue Size: 10
+  Tools:
+    - Class: rviz/Interact
+    - Class: rviz/MoveCamera
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 38
+      Focal Point:
+        X: -2
+        Y: -5
+        Z: 0
+      Pitch: 1.1
+      Yaw: 0
+    Saved: ~
