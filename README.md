@@ -30,6 +30,7 @@ autoware-lite/                       # https://github.com/SeaFu/autoware-lite
 │   ├── tests/
 │   └── README.md                     # GUI 逐頁操作說明
 ├── manifests/autoware_minimal.repos # 所需上游原始碼及 1.14.0 tag
+├── scripts/setup_wsl_ubuntu1804.cmd # Windows CMD：互動式建立 Ubuntu 18.04 WSL2
 ├── scripts/capture_autoware_state.sh
 └── .gitignore
 ```
@@ -40,7 +41,7 @@ autoware-lite/                       # https://github.com/SeaFu/autoware-lite
 
 | 項目 | 版本／用途 |
 | --- | --- |
-| Windows | Windows 11（PowerShell + WSL2） |
+| Windows | Windows 11（CMD／PowerShell + WSL2） |
 | Linux | WSL2 Ubuntu **18.04 Bionic**，發行版名稱範例 `Autoware-18.04` |
 | ROS | ROS 1 **Melodic**（主要 ROS 節點用 Python 2） |
 | Autoware | **Autoware.AI 1.14.0**，選擇性編譯 `lidar_localizer` 與必要導航節點 |
@@ -51,11 +52,63 @@ autoware-lite/                       # https://github.com/SeaFu/autoware-lite
 
 ## 1. Windows：建立 Ubuntu 18.04 WSL2
 
-### 1.1 匯入 Ubuntu rootfs
+### 1.1 啟用 WSL2（Windows CMD）
 
-先在 Windows 啟用 WSL2（未安裝者依 [Microsoft WSL 官方說明](https://learn.microsoft.com/windows/wsl/install) 完成，必要時重新開機）。
+先在 Windows 啟用 WSL2（未安裝者可依 [Microsoft WSL 官方說明](https://learn.microsoft.com/windows/wsl/install) 完成，必要時重新開機）。**如果你的電腦已經能正常執行 WSL2，可以略過此節，直接前往 1.2。**
+
+如果要依照本文件操作，請在 Windows 開始功能表搜尋 **`cmd`（命令提示字元）→「以系統管理員身分執行」**，輸入：
+
+```bat
+wsl --install --no-distribution
+```
+
+這會安裝／啟用 WSL 所需元件，但**不額外安裝預設 Ubuntu 發行版**；下一節會自行匯入指定版本 Ubuntu 18.04。若 Windows 要求重新開機，請先重新開機，**不要在重開機前繼續執行匯入精靈**。
+
+重新開機後，再開啟 Windows CMD（一般權限即可）檢查：
+
+```bat
+wsl --update
+wsl --set-default-version 2
+wsl --status
+```
+
+`wsl --status` 應能正常顯示 WSL 狀態及預設版本。如果 `wsl --install --no-distribution` 不支援或啟用失敗，可依 [Microsoft WSL 手動安裝步驟](https://learn.microsoft.com/windows/wsl/install-manual) 在**管理員 CMD** 分別啟用兩個 Windows 元件：
+
+```bat
+dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
+```
+
+手動啟用後也需要重新開機，再執行 `wsl --update`、`wsl --set-default-version 2`。若仍無法啟用，先檢查 Windows 版本及 BIOS／UEFI 虛擬化功能，依 Microsoft 官方疑難排解處理。**不需同時執行上述兩種安裝方法。**
+
+### 1.2 匯入 Ubuntu 18.04 rootfs（推薦使用 CMD 精靈）
 
 下載課程簡報採用的 [Ubuntu 18.04 WSL rootfs](https://cloud-images.ubuntu.com/releases/bionic/release/ubuntu-18.04-server-cloudimg-amd64-wsl.rootfs.tar.gz)，放在 Windows `Downloads`。若檔案已移到封存或網址失效，請使用可信任的 Ubuntu 18.04 原始映像，勿任意改成 Ubuntu 22.04／24.04（與 Melodic 不相容）。
+
+下載本專案的 **[`setup_wsl_ubuntu1804.cmd`](scripts/setup_wsl_ubuntu1804.cmd)**（進入 GitHub 檔案頁面後按 **Download raw file**），儲存在 Windows 的 `Downloads`，確認副檔名為 `.cmd`（不要存成 `.txt`）。先用記事本查看內容，確認是本 Repository 提供的腳本。之後可在檔案總管**雙擊**，也可以開啟一般權限的 **Windows CMD（命令提示字元）**，貼上以下指令執行：
+
+```bat
+"%USERPROFILE%\Downloads\setup_wsl_ubuntu1804.cmd"
+```
+
+這一行是 **Windows CMD 指令**，不是在 Ubuntu WSL 終端機裡執行。如果 `.cmd` 存在別的位置，請改成實際路徑；檔案路徑中有空白時，保留左右雙引號。
+
+安裝精靈會依序詢問：
+
+| 步驟 | 輸入項目 | 預設值／範例 |
+| --- | --- | --- |
+| 1 | **WSL2 安裝資料夾** | `%USERPROFILE%\WSL\Autoware1804`（也能自行指定 `D:\WSL\Autoware1804`） |
+| 2 | **WSL 發行版名稱** | `Autoware-18.04`（直接按 Enter） |
+| 3 | **Ubuntu rootfs 檔案** | `%USERPROFILE%\Downloads\ubuntu-18.04-server-cloudimg-amd64-wsl.rootfs.tar.gz` |
+
+輸入完成後會顯示摘要，**確認 `Y` 才會執行 `wsl --import ... --version 2`**。如果 rootfs 不存在、安裝資料夾已有檔案或匯入失敗，精靈會停止並報錯；**不會執行 `wsl --unregister`、清除既有發行版或覆寫非空資料夾**。匯入完成後可選擇立即開啟 Ubuntu。
+
+> [!IMPORTANT]
+> 這個 `.cmd` **只負責建立 Ubuntu 18.04 的 WSL2 發行版**，不會自行建立 Linux 一般使用者或安裝 ROS／Autoware。成功匯入後，請繼續 **1.3 建立 Linux 使用者**及後面的 ROS 安裝章節。
+
+#### 手動匯入方式（選用：供除錯與教學參考）
+
+若不使用精靈，也能在 Windows **PowerShell** 手動執行。下面保留課程簡報原本的匯入步驟，並加入檔案存在性檢查。
 
 > [!WARNING]
 > 🟨 **請特別注意：`<WindowsUser>` 代表你電腦上的「Windows 使用者資料夾名稱」**，也就是 `C:\Users\` 後面的那一段，**不是 GitHub 帳號，也不是稍後建立的 Linux 使用者名稱**。
@@ -78,9 +131,9 @@ wsl -d Autoware-18.04
 
 其中 `Test-Path $UbuntuRootfs` 應顯示 `True`。如果是 `False`，表示下載檔案不在預期的 Downloads 資料夾；請先確認實際存放位置，再修改 `$UbuntuRootfs`，不要繼續匯入。
 
-`wsl --import` 不會自動建立一般 Linux 使用者。新匯入環境可能先以 `root` 開啟。
+`wsl --import` 不會自動建立一般 Linux 使用者。新匯入環境通常先以 `root` 開啟。
 
-### 1.2 建立 Linux 使用者
+### 1.3 建立 Linux 使用者
 
 在 **Ubuntu WSL 終端機**中建立自己的 Linux 帳號。**Linux 帳號可以與 Windows 使用者名稱不同**。以下以 `cobe` 為範例，如果想使用別的帳號，請將三處 `cobe` 改成你選定的英文帳號名稱：
 
@@ -97,7 +150,7 @@ nano /etc/wsl.conf
 default=cobe
 ```
 
-退出 Linux 終端機，再從 **PowerShell** 執行：
+退出 Linux 終端機，再從 **Windows CMD 或 PowerShell** 執行（如果精靈建立時使用其他 WSL 名稱，請替換下方 `Autoware-18.04`）：
 
 ```powershell
 wsl --terminate Autoware-18.04
