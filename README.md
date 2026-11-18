@@ -1,6 +1,6 @@
-# Hunter × Autoware.AI 1.14：WSL2 安裝、NDT 與離線導航 GUI
+# Autoware-Lite: Lightweight Autoware.AI Framework for Mapping and Navigation
 
-本專案整理 **Windows 11 → WSL2 Ubuntu 18.04 → ROS Melodic → Autoware.AI 1.14.0 → PyQt5 GUI** 的可重現流程，用於 Hunter／VLP-16 錄製資料的離線教學：
+**基於 Autoware.AI 1.14.0 的非官方精簡教學專案**，整理 **Windows 11 → WSL2 Ubuntu 18.04 → ROS Melodic → Autoware.AI → PyQt5 GUI** 的可重現流程。最初以 Hunter／VLP-16 錄製資料進行離線驗證：
 
 - **NDT Mapping**：播放 ROS bag、建立與匯出 PCD 地圖。
 - **NDT Matching**：使用 PCD 對 bag 點雲定位，記錄 NDT 位姿與統計 CSV。
@@ -9,10 +9,16 @@
 
 > **重要安全邊界**：本專案只驗證 `/offline_nav/*` 的**離線指令產生**。沒有接 Hunter 車體控制、沒有障礙物避讓／急停，也不等於具備實車自主導航能力。請勿將離線輸出直接接到馬達控制器。
 
+### 文件導覽
+
+- [環境與版本](#0-相容環境與注意事項) → [WSL2 安裝](#1-windows建立-ubuntu-1804-wsl2) → [ROS Melodic](#2-ubuntu安裝-ros-melodic)
+- [Autoware.AI 編譯](#3-安裝-autowareai-1140只編譯需要的套件) → [啟動 GUI](#4-執行學生版-gui)
+- [離線驗證](#5-端到端離線驗證流程) → [常見問題](#6-常見故障與修正) → [本機版本記錄](#7-保留目前的-autowareai-版本和修改)
+
 ## 專案內容與來源
 
 ```text
-Hunter_Autoware/                     # 本 GitHub repository（名稱可自行更改）
+autoware-lite/                       # https://github.com/SeaFu/autoware-lite
 ├── README.md                        # 安裝與端到端驗證（本文件）
 ├── Autoware_GUI/
 │   ├── autoware_student_gui.py       # Python 3 / PyQt5 GUI
@@ -51,24 +57,36 @@ Hunter_Autoware/                     # 本 GitHub repository（名稱可自行�
 
 下載課程簡報採用的 [Ubuntu 18.04 WSL rootfs](https://cloud-images.ubuntu.com/releases/bionic/release/ubuntu-18.04-server-cloudimg-amd64-wsl.rootfs.tar.gz)，放在 Windows `Downloads`。若檔案已移到封存或網址失效，請使用可信任的 Ubuntu 18.04 原始映像，勿任意改成 Ubuntu 22.04／24.04（與 Melodic 不相容）。
 
-在 **PowerShell**（以下的 `<WindowsUser>` 換成實際帳號）執行：
+> [!WARNING]
+> 🟨 **請特別注意：`<WindowsUser>` 代表你電腦上的「Windows 使用者資料夾名稱」**，也就是 `C:\Users\` 後面的那一段，**不是 GitHub 帳號，也不是稍後建立的 Linux 使用者名稱**。
+>
+> 例如你的 Windows 使用者資料夾是 `C:\Users\Cobe`，那麼 `<WindowsUser>` 就是 `Cobe`。請先在 **Windows PowerShell** 輸入 `$env:USERPROFILE`，以實際顯示的資料夾路徑為準。
+
+為了避免輸錯使用者名稱，以下使用 PowerShell 的 **`$env:USERPROFILE` 自動取得 Windows 個人資料夾**，因此可整段複製，不需要手動修改 `<WindowsUser>`：
 
 ```powershell
+$env:USERPROFILE
+$UbuntuRootfs = Join-Path $env:USERPROFILE 'Downloads\ubuntu-18.04-server-cloudimg-amd64-wsl.rootfs.tar.gz'
+Test-Path $UbuntuRootfs
+if (-not (Test-Path $UbuntuRootfs)) { throw "找不到 Ubuntu rootfs，請先確認 Downloads 位置：$UbuntuRootfs" }
+
 New-Item -ItemType Directory -Force D:\WSL\Autoware1804
-wsl --import Autoware-18.04 "D:\WSL\Autoware1804" "C:\Users\<WindowsUser>\Downloads\ubuntu-18.04-server-cloudimg-amd64-wsl.rootfs.tar.gz" --version 2
+wsl --import Autoware-18.04 "D:\WSL\Autoware1804" "$UbuntuRootfs" --version 2
 wsl --list --verbose
 wsl -d Autoware-18.04
 ```
+
+其中 `Test-Path $UbuntuRootfs` 應顯示 `True`。如果是 `False`，表示下載檔案不在預期的 Downloads 資料夾；請先確認實際存放位置，再修改 `$UbuntuRootfs`，不要繼續匯入。
 
 `wsl --import` 不會自動建立一般 Linux 使用者。新匯入環境可能先以 `root` 開啟。
 
 ### 1.2 建立 Linux 使用者
 
-在 **Ubuntu WSL 終端機**中，將 `<LinuxUser>` 替換為自己的英文帳號名稱：
+在 **Ubuntu WSL 終端機**中建立自己的 Linux 帳號。**Linux 帳號可以與 Windows 使用者名稱不同**。以下以 `cobe` 為範例，如果想使用別的帳號，請將三處 `cobe` 改成你選定的英文帳號名稱：
 
 ```bash
-adduser <LinuxUser>
-usermod -aG sudo <LinuxUser>
+adduser cobe
+usermod -aG sudo cobe
 nano /etc/wsl.conf
 ```
 
@@ -76,7 +94,7 @@ nano /etc/wsl.conf
 
 ```ini
 [user]
-default=<LinuxUser>
+default=cobe
 ```
 
 退出 Linux 終端機，再從 **PowerShell** 執行：
@@ -86,7 +104,7 @@ wsl --terminate Autoware-18.04
 wsl -d Autoware-18.04 --cd ~
 ```
 
-確認 `whoami` 已是一般使用者、`pwd` 位於 `/home/<LinuxUser>`，`cat /etc/os-release` 顯示 Ubuntu 18.04。
+確認 `whoami` 已是剛建立的 Linux 帳號、`pwd` 位於對應的 `/home/帳號名稱`，`cat /etc/os-release` 顯示 Ubuntu 18.04。
 
 ## 2. Ubuntu：安裝 ROS Melodic
 
@@ -143,11 +161,11 @@ fc-match 'Noto Sans CJK TC'
 
 ### 3.1 取得本 GitHub repository
 
-在 WSL clone 此專案（將 URL 換成你建立的 GitHub 倉庫）：
+在 WSL clone **SeaFu/autoware-lite**：
 
 ```bash
-git clone <YOUR_GITHUB_REPOSITORY_URL> ~/Hunter_Autoware
-cd ~/Hunter_Autoware
+git clone https://github.com/SeaFu/autoware-lite.git ~/autoware-lite
+cd ~/autoware-lite
 ```
 
 ### 3.2 還原原始碼版本
@@ -215,7 +233,7 @@ rospack find autoware_msgs
 ```bash
 source /opt/ros/melodic/setup.bash
 source ~/autoware.ai/install/setup.bash
-cd ~/Hunter_Autoware/Autoware_GUI
+cd ~/autoware-lite/Autoware_GUI
 python3 autoware_student_gui.py
 ```
 
@@ -312,7 +330,7 @@ sed -n '1l' ~/autoware.ai/trajectory/vlp16_waypoints_01_lf.csv
 新電腦要精確重建**現在這台 WSL 的 Autoware**，只記 tag 不夠；任何自己改過的 `.cpp`、`.launch` 或其他本機修改都必須另行保存。提供只讀匯出腳本：
 
 ```bash
-cd ~/Hunter_Autoware
+cd ~/autoware-lite
 bash scripts/capture_autoware_state.sh ~/autoware.ai
 ```
 
@@ -325,7 +343,7 @@ bash scripts/capture_autoware_state.sh ~/autoware.ai
 不用 ROS，也能先跑 GUI 核心單元測試：
 
 ```bash
-cd ~/Hunter_Autoware/Autoware_GUI
+cd ~/autoware-lite/Autoware_GUI
 python3 -m unittest discover -s tests -v
 ```
 
