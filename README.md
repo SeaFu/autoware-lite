@@ -13,7 +13,7 @@
 
 - [環境與版本](#0-相容環境與注意事項) → [WSL2 安裝](#1-windows建立-ubuntu-1804-wsl2) → [ROS Melodic](#2-ubuntu安裝-ros-melodic)
 - [Autoware.AI 編譯](#3-安裝-autowareai-1140只編譯需要的套件) → [啟動 GUI](#4-執行學生版-gui)
-- [離線驗證](#5-端到端離線驗證流程) → [常見問題](#6-常見故障與修正) → [本機版本記錄](#7-保留目前的-autowareai-版本和修改)
+- [離線驗證](#5-端到端離線驗證流程) → [常見問題](#6-常見問題與修正) → [本機版本記錄](#7-保留目前的-autowareai-版本和修改)
 
 ## 專案內容與來源
 
@@ -354,7 +354,7 @@ rostopic echo /offline_nav/twist_cmd/twist/linear/x
 
 觀察目標 Marker 隨著 NDT Pose 移動，並確認其位於參考路線的前方。**RViz 顯示目標與軌跡，不會代替控制閉迴路測試**。Autoware 原版的 `next_target_mark` 等 Marker 若出現 `Uninitialized quaternion, assuming identity` 橘色警告，多半是標記四元數 `w=0` 造成的視覺化警告；若 Marker 仍在正確位置且 `twist_raw` 正常，不能僅憑這個警告判定追蹤演算法失敗。
 
-## 6. 常見故障與修正
+## 6. 常見問題與修正
 
 | 現象 | 可能原因／處置 |
 | --- | --- |
