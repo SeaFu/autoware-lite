@@ -108,7 +108,7 @@ dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /nores
 如果 rootfs 不存在、安裝資料夾已有檔案或匯入失敗，精靈會停止並報錯；**不會執行 `wsl --unregister`、清除既有發行版或覆寫非空資料夾**。匯入完成後可選擇立即開啟 Ubuntu。
 
 > [!TIP]
-> 如果你的 Windows 已有 WSL2、也已下載 Ubuntu 18.04 rootfs，但舊版安裝精靈在輸入路徑之前就以「WSL2 尚未準備好」結束，請重新下載本 Repository 更新後的 `setup_wsl_ubuntu1804.cmd`。新版已移除「必須先有一個正常回報的 WSL 發行版」的前置限制。
+> 確認 Windows 已有 WSL2、也已下載 Ubuntu 18.04 rootfs。
 
 > [!IMPORTANT]
 > 這個 `.cmd` **只負責建立 Ubuntu 18.04 的 WSL2 發行版**，不會自行建立 Linux 一般使用者或安裝 ROS／Autoware。成功匯入後，請繼續 **1.3 建立 Linux 使用者**及後面的 ROS 安裝章節。
