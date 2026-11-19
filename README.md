@@ -30,7 +30,7 @@ autoware-lite/                       # https://github.com/SeaFu/autoware-lite
 │   ├── tests/
 │   └── README.md                     # GUI 逐頁操作說明
 ├── manifests/autoware_minimal.repos # 所需上游原始碼及 1.14.0 tag
-├── scripts/setup_wsl_ubuntu1804.cmd # Windows CMD：互動式建立 Ubuntu 18.04 WSL2
+├── scripts/setup_wsl_ubuntu1804.cmd # Windows 雙擊執行；內含 PowerShell 匯入精靈
 ├── scripts/capture_autoware_state.sh
 └── .gitignore
 ```
@@ -48,26 +48,45 @@ autoware-lite/                       # https://github.com/SeaFu/autoware-lite
 | GUI | Python 3 + `python3-pyqt5`；RViz 需可用的 Linux 圖形介面 |
 | 資料 | VLP-16 `sensor_msgs/PointCloud2` ROS bag（範例 `/points_raw`） |
 
-**已停止維護的舊版環境**：Ubuntu 18.04 一般支援已於 2023 年結束、ROS Melodic 已 EOL，Autoware.AI 亦已封存。因套件源、金鑰及依賴可能改變，以下是**本次實驗環境的重建紀錄**，並非保證在任何全新 Windows 電腦可無修改安裝。建議在隔離 WSL／教學主機使用，勿作公開網路服務。
+**已停止維護的舊版環境**：Ubuntu 18.04 一般支援已於 2023 年結束、ROS Melodic 已 EOL，Autoware.AI 亦已封存。因套件源、金鑰及依賴可能改變，安裝過程需要確認每個步驟的結果，不能保證在任何全新 Windows 電腦都無須調整。建議在隔離 WSL／教學主機使用，勿作公開網路服務。
 
 ## 1. Windows：建立 Ubuntu 18.04 WSL2
 
 ### 1.1 啟用 WSL2（Windows CMD）
 
-先在 Windows 啟用 WSL2（未安裝者可依 [Microsoft WSL 官方說明](https://learn.microsoft.com/windows/wsl/install) 完成，必要時重新開機）。**如果你的電腦已經能正常執行 WSL2，可以略過整個 1.1 節，直接前往 1.2；不需要重複安裝或啟用 Windows 功能。**
+這一節的指令都在 **Windows 11** 執行，**不是 Ubuntu 終端機**。如果你的電腦已能正常使用 WSL2，可以直接前往 [1.2 匯入 Ubuntu 18.04](#12-匯入-ubuntu-1804-rootfs推薦使用-cmd-精靈)，不必重複安裝。
 
 > [!IMPORTANT]
-> **WSL2 啟用方式二選一：**優先使用下方的 `wsl --install --no-distribution`；只有這個指令不支援或執行失敗時，才改用後面的兩行 `dism.exe`。**成功完成其中一種方式，就不需要再執行另一種。**
+> **WSL2 啟用方式二選一：**先嘗試下面的 **方式 A**；只有方式 A 不支援或執行失敗時，才使用 **方式 B**。**成功完成其中一種方式，就不要再執行另一種。**
 
-如果要依照本文件操作，請在 Windows 開始功能表搜尋 **`cmd`（命令提示字元）→「以系統管理員身分執行」**，輸入：
+#### 方式 A：使用 WSL 安裝指令（推薦）
+
+1. 在 Windows 開始功能表搜尋 **`cmd`**。
+2. 對「命令提示字元」按右鍵，選擇 **「以系統管理員身分執行」**。
+3. 複製下方這一行，貼入 CMD 並按 Enter：
 
 ```bat
 wsl --install --no-distribution
 ```
 
-這會安裝／啟用 WSL 所需元件，但**不額外安裝預設 Ubuntu 發行版**；下一節會自行匯入指定版本 Ubuntu 18.04。若 Windows 要求重新開機，請先重新開機，**不要在重開機前繼續執行匯入精靈**。
+這會準備 WSL 所需元件，但**不額外安裝 Microsoft Store 的預設 Ubuntu**。等待指令完成；不同 Windows 版本的訊息可能不同，**沒有出現安裝失敗／錯誤代碼**且指令已返回 `C:\...` 提示符號，表示這一步已執行完畢。
 
-重新開機後，再開啟 Windows CMD（一般權限即可）檢查：
+**如果 Windows 要求重新開機，務必先重新開機再繼續。**若電腦正在等待重新啟動，先不要執行匯入精靈。
+
+#### 方式 B：手動開啟 Windows 功能（只在方式 A 不可用時執行）
+
+若方式 A 顯示不支援的參數或啟用失敗，可依 [Microsoft WSL 手動安裝步驟](https://learn.microsoft.com/windows/wsl/install-manual)，在**系統管理員 CMD** 依序執行：
+
+```bat
+dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
+```
+
+每一行應看到類似 `The operation completed successfully` 或「操作順利完成」；**兩行都成功後重新開機**。如果方式 A 已成功，就不用再執行這兩行。
+
+#### 確認 WSL2 已準備好
+
+重新開機後，在 **Windows CMD（一般權限即可）**依序執行：
 
 ```bat
 wsl --update
@@ -75,16 +94,12 @@ wsl --set-default-version 2
 wsl --status
 ```
 
-`wsl --status` 用來查看 WSL 設定；**在尚未匯入任何 Linux 發行版的全新電腦上，出現「沒有已安裝的發行版」並不代表 Ubuntu 18.04 匯入失敗**。新的安裝精靈不會把 `wsl --status` 的非零回傳值直接視為無法匯入；是否能使用 WSL2，會以實際執行 `wsl --import ... --version 2` 的結果為準。
+- `wsl --update`：等待更新完成；如果網路或更新服務暫時有問題，依畫面錯誤訊息處理。
+- `wsl --set-default-version 2`：應看到「操作順利完成」或同等成功訊息。
+- `wsl --status`：查看 WSL 設定；若顯示「預設版本：2」（或 `Default Version: 2`），表示預設為 WSL2。
 
-如果 `wsl --install --no-distribution` 不支援或啟用失敗，可依 [Microsoft WSL 手動安裝步驟](https://learn.microsoft.com/windows/wsl/install-manual) 在**管理員 CMD** 分別啟用兩個 Windows 元件：
-
-```bat
-dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
-dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
-```
-
-手動啟用後也需要重新開機，再執行 `wsl --update`、`wsl --set-default-version 2`。若仍無法啟用，先檢查 Windows 版本及 BIOS／UEFI 虛擬化功能，依 Microsoft 官方疑難排解處理。**若前面的 `wsl --install --no-distribution` 已成功，請跳過這兩行 DISM 指令。**
+> [!TIP]
+> **全新電腦尚未有 Linux 發行版是正常的。**如果此時執行 `wsl --list --verbose` 顯示「沒有已安裝的發行版」，不代表出錯；Ubuntu 18.04 正是下一節才會建立。若 Windows 提示 WSL 核心／虛擬化未啟用，請先處理該錯誤並完成必要的重新開機。
 
 ### 1.2 匯入 Ubuntu 18.04 rootfs（推薦使用 CMD 精靈）
 
@@ -95,60 +110,97 @@ dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /nores
 > 2. **如果已顯示 `Autoware-18.04` 且 VERSION 為 `2`：代表已匯入成功，請跳過整個 1.2 節，直接進入 [1.3 建立 Linux 使用者](#13-建立-linux-使用者)（若已有一般使用者，也不需重建）。**
 > 3. **如果尚未匯入：**請選擇 **方式 A（推薦）** 或 **方式 B（手動）**，只執行其中一種。成功後不要再執行另一種，以免遇到「發行版名稱已存在」或安裝資料夾非空白等錯誤。
 
-若尚未準備檔案，請下載課程簡報採用的 [Ubuntu 18.04 WSL rootfs](https://cloud-images.ubuntu.com/releases/bionic/release/ubuntu-18.04-server-cloudimg-amd64-wsl.rootfs.tar.gz)，放在 Windows `Downloads`；**若已有可用的 Ubuntu 18.04 rootfs 檔案，直接使用既有檔案即可，不必重複下載**。若檔案已移到封存或網址失效，請使用可信任的 Ubuntu 18.04 原始映像，勿任意改成 Ubuntu 22.04／24.04（與 Melodic 不相容）。
+先確認 Windows 是否已有 Ubuntu 18.04 的 rootfs 檔案。如果沒有，下載課程簡報採用的 [Ubuntu 18.04 WSL rootfs](https://cloud-images.ubuntu.com/releases/bionic/release/ubuntu-18.04-server-cloudimg-amd64-wsl.rootfs.tar.gz)，建議存到 Windows **「下載」(Downloads)** 資料夾。檔名通常是 `ubuntu-18.04-server-cloudimg-amd64-wsl.rootfs.tar.gz`。**這是壓縮檔，不需要自己解壓縮。**
+
+若你已經有可用的 Ubuntu 18.04 rootfs，可直接使用既有檔案，不必重複下載。請勿改用 Ubuntu 22.04／24.04 rootfs，因為後續安裝的 ROS Melodic 是針對 Ubuntu 18.04 的環境。
 
 #### 方式 A：使用 CMD 安裝精靈（推薦）
 
-下載本專案的 **[`setup_wsl_ubuntu1804.cmd`](scripts/setup_wsl_ubuntu1804.cmd)**（進入 GitHub 檔案頁面後按 **Download raw file**），儲存在 Windows 的 `Downloads`，確認副檔名為 `.cmd`（不要存成 `.txt`）。先用記事本查看內容，確認是本 Repository 提供的腳本。之後可在檔案總管**雙擊**，也可以開啟一般權限的 **Windows CMD（命令提示字元）**，貼上以下指令執行：
+1. 在 Windows 瀏覽器打開 **[`setup_wsl_ubuntu1804.cmd`](scripts/setup_wsl_ubuntu1804.cmd)**。
+2. 在 GitHub 檔案頁面按右上方 **Download raw file**，將檔案儲存在 Windows 的 **「下載」資料夾**。確認實際檔名是 `setup_wsl_ubuntu1804.cmd`，**不是 `.cmd.txt`**。
+3. 建議先用記事本檢視內容，確認檔案來源是本專案。精靈是**單一 `.cmd` 檔案**，內含 PowerShell 處理程序，**不需要另外下載 `.ps1`**。
+4. 在檔案總管**雙擊 `setup_wsl_ubuntu1804.cmd`**，或使用一般權限的 **Windows CMD（命令提示字元）**執行：
 
 ```bat
 "%USERPROFILE%\Downloads\setup_wsl_ubuntu1804.cmd"
 ```
 
-這一行是 **Windows CMD 指令**，不是在 Ubuntu WSL 終端機裡執行。如果 `.cmd` 存在別的位置，請改成實際路徑；檔案路徑中有空白時，保留左右雙引號。
+這一行是 **Windows CMD 指令**，不是在 Ubuntu WSL 終端機裡執行。如果 `.cmd` 存在別的位置，請改成實際路徑。**不需要以系統管理員身分開啟精靈**；若 WSL2 本身尚未啟用，請先回到 1.1 完成 Windows 安裝。
 
-安裝精靈會依序詢問：
+**開啟成功時**，你會看到 `Autoware-Lite | Ubuntu 18.04 WSL2 匯入精靈`，接著看到 `[環境檢查]` 與 `[成功] 已找到 WSL 指令。`。若出現「找不到 wsl.exe」，請先依 1.1 安裝 WSL2。全新電腦顯示「尚未偵測到已匯入的發行版」則是正常的。
 
-| 步驟 | 輸入項目 | 預設值／範例 |
-| --- | --- | --- |
-| 1 | **WSL2 安裝資料夾** | `%USERPROFILE%\WSL\Autoware1804`（也能自行指定 `D:\WSL\Autoware1804`） |
-| 2 | **WSL 發行版名稱** | `Autoware-18.04`（直接按 Enter） |
-| 3 | **Ubuntu rootfs 檔案** | `%USERPROFILE%\Downloads\ubuntu-18.04-server-cloudimg-amd64-wsl.rootfs.tar.gz` |
+精靈會問三項設定。**沒有特殊需求時，建議直接按 Enter 使用預設值；尤其是發行版名稱 `Autoware-18.04`，這樣後續 README 的指令就不用改。**
 
-輸入完成後會顯示摘要，**確認 `Y` 才會執行 `wsl --import ... --version 2`**。即使 `wsl --list --verbose` 顯示「尚未安裝任何 Linux 發行版」，也屬於首次匯入前的正常狀態，不需要先從 Microsoft Store 另外安裝 Ubuntu。
-
-如果 rootfs 不存在、安裝資料夾已有檔案或匯入失敗，精靈會停止並報錯；**不會執行 `wsl --unregister`、清除既有發行版或覆寫非空資料夾**。匯入完成後可選擇立即開啟 Ubuntu。
+| 步驟 | 輸入項目 | 預設值 | 建議操作 |
+| --- | --- | --- | --- |
+| 1 | **WSL2 安裝資料夾** | `%USERPROFILE%\WSL\Autoware1804` | 沒有指定磁碟需求就按 **Enter**；也可自行輸入 `D:\WSL\Autoware1804` |
+| 2 | **WSL 發行版名稱** | `Autoware-18.04` | **強烈建議按 Enter**，方便直接使用後續指令 |
+| 3 | **Ubuntu rootfs 檔案** | `%USERPROFILE%\Downloads\ubuntu-18.04-server-cloudimg-amd64-wsl.rootfs.tar.gz` | 檔案在預設位置且沒改名就按 **Enter**；否則貼上實際完整路徑 |
 
 > [!TIP]
-> 確認 Windows 已有 WSL2、也已下載 Ubuntu 18.04 rootfs。
+> `%USERPROFILE%` 是 Windows 自己的個人資料夾，例如 `C:\Users\Cobe`，**不用自己修改 Windows 使用者名稱**。如果 rootfs 放在其他資料夾，可在 Windows 11 檔案總管對檔案按**滑鼠右鍵 →「複製路徑」**後直接貼進精靈，例如 `"D:\課程資料\Ubuntu 18.04\ubuntu-18.04.rootfs.tar.gz"`。**不用自行刪除外層雙引號**，精靈會處理。
+
+三項輸入通過檢查後，會依序看到類似訊息：
+
+```text
+[成功] 安裝資料夾可使用：D:\WSL\Autoware1804
+[成功] 發行版名稱可使用：Autoware-18.04
+[成功] 已找到 rootfs 檔案：D:\課程資料\Ubuntu 18.04\ubuntu-18.04.rootfs.tar.gz
+```
+
+這些路徑只是範例，實際會顯示你的設定。**若畫面出現黃色「提醒」，請依提示重新輸入，直到看到「成功」再繼續**。名稱已存在、資料夾非空白時，請確認原本環境的用途，**不要為了重試而刪除資料**。
+
+精靈最後會顯示摘要。確認名稱、安裝資料夾、rootfs 都正確後，輸入 **`Y`** 並按 Enter 才會執行匯入。**直接按 Enter 或輸入 `N` 代表取消**。匯入可能需要數分鐘，請勿關閉視窗。
+
+**匯入成功時**應看到類似：
+
+```text
+[成功] 已匯入 WSL2 發行版：Autoware-18.04
+NAME             STATE           VERSION
+Autoware-18.04   Running         2
+[成功] Ubuntu 版本為 18.04，可以繼續 README 第 1.3 節。
+```
+
+`STATE` 也可能顯示 `Stopped`，不影響已匯入的判斷；**重點是發行版名稱正確、`VERSION` 為 `2`，Ubuntu 版本為 18.04**。若看到「已匯入，但無法自動確認 Ubuntu 版本」，在 Windows CMD 執行 `wsl -d Autoware-18.04 -- cat /etc/os-release`，確認出現 `VERSION_ID="18.04"` 再繼續。
+
+最後精靈會詢問是否立即開啟 Ubuntu。要開啟請輸入 `Y`；**直接按 Enter 表示先不開啟**。日後可在 Windows CMD 輸入 `wsl -d Autoware-18.04` 開啟。
 
 > [!IMPORTANT]
-> 這個 `.cmd` **只負責建立 Ubuntu 18.04 的 WSL2 發行版**，不會自行建立 Linux 一般使用者或安裝 ROS／Autoware。**如果已用方式 A 成功匯入，請不要再執行下方方式 B 的 PowerShell 指令；直接前往 [1.3 建立 Linux 使用者](#13-建立-linux-使用者)**及後面的 ROS 安裝章節。
+> 本精靈**不會執行 `wsl --unregister`、刪除既有發行版或覆寫非空資料夾**。如果匯入失敗，畫面會保留錯誤與診斷方向，且不會自動清理資料。它**只建立 Ubuntu 18.04 WSL2**，不會安裝 ROS／Autoware，也不會建立 Linux 一般使用者。**方式 A 成功後直接前往 [1.3](#13-建立-linux-使用者)，不要再執行方式 B。**
 
 #### 方式 B：PowerShell 手動匯入（僅供未使用方式 A 者選用）
 
-**只有尚未使用方式 A 成功匯入 Ubuntu 18.04，才需要以下指令。**若已完成方式 A，請跳過整個方式 B，直接前往 1.3。此處保留課程簡報原本的手動匯入步驟，供除錯與教學參考；以下指令請在 Windows **PowerShell** 執行，不是 CMD 或 Ubuntu 終端機。
+**只有尚未使用方式 A 成功匯入 Ubuntu 18.04，才需要以下指令。**若已完成方式 A，請跳過整個方式 B，直接前往 1.3。以下是在 Windows **PowerShell** 執行的手動做法，**不是 CMD 或 Ubuntu 終端機**。不熟悉指令的使用者建議選方式 A。
 
 > [!WARNING]
 > 🟨 **請特別注意：`<WindowsUser>` 代表你電腦上的「Windows 使用者資料夾名稱」**，也就是 `C:\Users\` 後面的那一段，**不是 GitHub 帳號，也不是稍後建立的 Linux 使用者名稱**。
 >
 > 例如你的 Windows 使用者資料夾是 `C:\Users\Cobe`，那麼 `<WindowsUser>` 就是 `Cobe`。請先在 **Windows PowerShell** 輸入 `$env:USERPROFILE`，以實際顯示的資料夾路徑為準。
 
-為了避免輸錯使用者名稱，以下使用 PowerShell 的 **`$env:USERPROFILE` 自動取得 Windows 個人資料夾**，因此可整段複製，不需要手動修改 `<WindowsUser>`：
+為避免輸錯使用者名稱，以下使用 PowerShell 的 **`$env:USERPROFILE` 自動取得 Windows 個人資料夾**，因此不需要自行修改 `<WindowsUser>`。如果希望把 Ubuntu 安裝在其他磁碟，可修改 `$InstallDir`；沒有偏好就保留範例值：
 
 ```powershell
 $env:USERPROFILE
 $UbuntuRootfs = Join-Path $env:USERPROFILE 'Downloads\ubuntu-18.04-server-cloudimg-amd64-wsl.rootfs.tar.gz'
+$InstallDir = 'D:\WSL\Autoware1804'
 Test-Path $UbuntuRootfs
 if (-not (Test-Path $UbuntuRootfs)) { throw "找不到 Ubuntu rootfs，請先確認 Downloads 位置：$UbuntuRootfs" }
 
-New-Item -ItemType Directory -Force D:\WSL\Autoware1804
-wsl --import Autoware-18.04 "D:\WSL\Autoware1804" "$UbuntuRootfs" --version 2
+if (Test-Path $InstallDir) {
+    if (Get-ChildItem -LiteralPath $InstallDir -Force | Select-Object -First 1) {
+        throw "安裝資料夾不是空的，請換一個資料夾：$InstallDir"
+    }
+}
+New-Item -ItemType Directory -Force $InstallDir
+wsl --import Autoware-18.04 "$InstallDir" "$UbuntuRootfs" --version 2
+if ($LASTEXITCODE -ne 0) { throw 'WSL 匯入失敗，請查看上一行錯誤訊息。' }
 wsl --list --verbose
-wsl -d Autoware-18.04
+wsl -d Autoware-18.04 -- cat /etc/os-release
 ```
 
 其中 `Test-Path $UbuntuRootfs` 應顯示 `True`。如果是 `False`，表示下載檔案不在預期的 Downloads 資料夾；請先確認實際存放位置，再修改 `$UbuntuRootfs`，不要繼續匯入。
+
+**手動匯入成功的判斷**：`wsl --list --verbose` 列出 `Autoware-18.04`、`VERSION` 為 `2`；`cat /etc/os-release` 的輸出包含 `VERSION_ID="18.04"`。如果同名發行版已存在，`wsl --import` 會拒絕重複建立；請先檢查原有系統，**不要執行 `wsl --unregister`**。
 
 `wsl --import` 不會自動建立一般 Linux 使用者。新匯入環境通常先以 `root` 開啟。
 
@@ -156,30 +208,54 @@ wsl -d Autoware-18.04
 
 ### 1.3 建立 Linux 使用者
 
-在 **Ubuntu WSL 終端機**中建立自己的 Linux 帳號。**Linux 帳號可以與 Windows 使用者名稱不同**。以下以 `cobe` 為範例，如果想使用別的帳號，請將三處 `cobe` 改成你選定的英文帳號名稱：
+**這一節開始使用 Ubuntu WSL 終端機，不再是 Windows CMD。**若剛剛沒有選擇立即開啟 Ubuntu，請在 Windows CMD 執行：
 
-```bash
-adduser cobe
-usermod -aG sudo cobe
-apt install gedit
-gedit /etc/wsl.conf
+```bat
+wsl -d Autoware-18.04
 ```
 
-寫入以下內容（若檔案已有其他 WSL 設定，請保留原有段落）：
+先在 Ubuntu 輸入 `whoami` 與 `cat /etc/os-release`。首次匯入的 rootfs 通常以 `root` 身分開啟，`/etc/os-release` 應包含 `VERSION_ID="18.04"`。
+
+**如果 `whoami` 已顯示自己的 Linux 一般使用者名稱，可略過建立帳號的指令。**如果顯示 `root`，請建立一個一般使用者。Linux 使用者名稱可以和 Windows 帳號不同；以下建議用 `autoware` 作為範例名稱，若想用自己的帳號名稱，請在本節每個出現 `autoware` 的地方一致替換。
+
+在 **Ubuntu（root 終端機）**依序輸入：
+
+```bash
+adduser autoware
+usermod -aG sudo autoware
+```
+
+`adduser` 會要求輸入兩次 Linux 密碼，輸入密碼時畫面**不會顯示任何字元**，屬於正常現象；後面若詢問 Full Name、Room Number 等個人資料，沒有需要可以直接按 Enter 跳過，最後確認 `Y`。建立成功後可執行 `id autoware`，看到 `uid=...` 及群組中有 `sudo`，代表帳號及管理權限設定完成。
+
+接著用終端機文字編輯器設定預設登入帳號，避免每次開啟 Ubuntu 都是 root：
+
+```bash
+nano /etc/wsl.conf
+```
+
+若系統提示 `nano: command not found`，可以先執行 `apt update`、`apt install -y nano` 後再重試。在檔案中加入以下內容；**若檔案已經有其他設定，請保留既有內容，只新增或修改 `[user]` 區段**：
 
 ```ini
 [user]
-default=cobe
+default=autoware
 ```
 
-退出 Linux 終端機，再從 **Windows CMD 或 PowerShell** 執行（如果精靈建立時使用其他 WSL 名稱，請替換下方 `Autoware-18.04`）：
+在 nano 按 **Ctrl+O → Enter** 儲存，再按 **Ctrl+X** 離開。關閉這個 Ubuntu 視窗，改回 **Windows CMD** 執行以下指令以重新載入設定：
 
-```powershell
+```bat
 wsl --terminate Autoware-18.04
 wsl -d Autoware-18.04 --cd ~
 ```
 
-確認 `whoami` 已是剛建立的 Linux 帳號、`pwd` 位於對應的 `/home/帳號名稱`，`cat /etc/os-release` 顯示 Ubuntu 18.04。
+**成功判斷**：在重新開啟的 Ubuntu 終端機輸入：
+
+```bash
+whoami
+pwd
+cat /etc/os-release | grep VERSION_ID
+```
+
+應依序看到 `autoware`、`/home/autoware`、`VERSION_ID="18.04"`（若使用其他 Linux 帳號名稱，前兩項會不同）。**確認這三項正確後，再進入第 2 節安裝 ROS Melodic。**若當初自訂了 WSL 發行版名稱，Windows 指令中的 `Autoware-18.04` 也必須改成該名稱。
 
 ## 2. Ubuntu：安裝 ROS Melodic
 
@@ -196,7 +272,7 @@ sudo apt update
 apt-cache policy ros-melodic-ros-base
 ```
 
-這裡**修正了簡報中的金鑰保存方式**：以 `gpg --dearmor` 轉成 binary keyring，並讓 apt source 使用 `signed-by`。若 `apt update` 出現 `NO_PUBKEY`、`EXPKEYSIG` 或 404，先查核 ROS 封存套件源與金鑰的現況；不要使用 `trusted=yes` 或關閉簽章驗證強行安裝。
+這些指令會設定 ROS Melodic 的 apt 套件來源與簽章金鑰。**成功判斷**：最後一個 `sudo apt update` 沒有 `E:`、`NO_PUBKEY`、`EXPKEYSIG` 或 404 等錯誤，且 `apt-cache policy ros-melodic-ros-base` 能列出 `Candidate:` 版本（不是 `(none)`），就可以繼續 2.2。若來源失效，先檢查 ROS 封存套件源與金鑰；**不要使用 `trusted=yes` 或關閉簽章驗證強行安裝**。
 
 ### 2.2 安裝 Melodic 及建置工具
 
@@ -210,6 +286,8 @@ sudo apt install -y git cmake build-essential python-catkin-pkg python-rosdep \
   python3-colcon-common-extensions python3-vcstool
 ```
 
+**成功判斷**：`sudo apt install` 完成後沒有 `E: Unable to locate package` 或其他安裝失敗訊息。在 Ubuntu 執行 `rosversion -d` 應顯示 `melodic`；如果提示 `rosversion: command not found`，先確認 ROS 安裝完成並重新執行 `source /opt/ros/melodic/setup.bash`。
+
 第一次使用 `rosdep`（**`sudo rosdep init` 只需執行一次**）：
 
 ```bash
@@ -218,7 +296,7 @@ rosdep update --include-eol-distros --rosdistro melodic
 ```
 
 > [!IMPORTANT]
-> **ROS Melodic 已停止維護（EOL）**，更新 rosdep 時需要加上 `--include-eol-distros`，才能包含 Melodic 的套件索引；`--rosdistro melodic` 表示只更新本教學需要的 ROS 發行版索引，減少不必要的下載。正常更新結果應包含 `Add distro "melodic"`，且最後沒有下載錯誤。
+> **ROS Melodic 已停止維護（EOL）**，更新 rosdep 時需要加上 `--include-eol-distros`，才能包含 Melodic 的套件索引；`--rosdistro melodic` 表示只更新本教學需要的 ROS 發行版索引，減少不必要的下載。**成功判斷**：輸出包含 `Add distro "melodic"`，而且最後沒有下載錯誤；這樣才進行第 3 節的原始碼及依賴安裝。
 
 若執行 `sudo rosdep init` 出現 `rosdep sources list file already exists`，代表**已初始化，不必重做這一步**。請直接執行：
 
@@ -239,7 +317,7 @@ fc-cache -fv
 fc-match 'Noto Sans CJK TC'
 ```
 
-`$DISPLAY` 不應為空。Windows 11 WSLg 通常可以直接開啟 `rviz`／PyQt5；若無法顯示，先解決 WSLg 或 X Server 問題，**不要直接硬設 `DISPLAY=:0`**。若 RViz 因顯示卡驅動失敗，可先在同一終端機測試 `LIBGL_ALWAYS_SOFTWARE=1 rviz`（可能較慢）。
+**成功判斷**：`echo "$DISPLAY"` 輸出非空的顯示位址，`fc-match 'Noto Sans CJK TC'` 能找到中文字型。Windows 11 WSLg 通常可以直接開啟 `rviz`／PyQt5；若 GUI 無法顯示，先解決 WSLg 或 X Server 問題，**不要直接硬設 `DISPLAY=:0`**。若 RViz 因顯示卡驅動失敗，可先在同一終端機測試 `LIBGL_ALWAYS_SOFTWARE=1 rviz`（可能較慢）。圖形環境正常後再繼續。
 
 ## 3. 安裝 Autoware.AI 1.14.0（只編譯需要的套件）
 
@@ -250,7 +328,11 @@ fc-match 'Noto Sans CJK TC'
 ```bash
 git clone https://github.com/SeaFu/autoware-lite.git ~/autoware-lite
 cd ~/autoware-lite
+pwd
+ls README.md scripts/setup_wsl_ubuntu1804.cmd
 ```
+
+**成功判斷**：`git clone` 完成時沒有 `fatal:` 錯誤；`pwd` 顯示 `/home/你的Linux帳號/autoware-lite`，`ls` 能列出 README 與安裝精靈檔案。若 `git clone` 顯示目標資料夾已存在，先檢查該資料夾，不要直接刪除；已經有正確的 `~/autoware-lite` 時可直接 `cd ~/autoware-lite` 繼續。
 
 ### 3.2 還原原始碼版本
 
@@ -263,7 +345,7 @@ cd ~/autoware.ai
 vcs status src
 ```
 
-這相當於簡報分別 clone Autoware-AI `messages`／`common`／`core_perception`／`utilities`，再 clone `autoware_ai_planning` 到 `core_planning`，且都固定 `1.14.0` tag。若你已有能正常運作的 `~/autoware.ai`，**先記錄版本及本地修改**，不要直接在原目錄覆蓋或重跑 `vcs import`。
+這會下載所需的 Autoware-AI `messages`／`common`／`core_perception`／`utilities` 和 `autoware_ai_planning`（`core_planning`），並固定 `1.14.0` 版本。**成功判斷**：`vcs import` 沒有 `ERROR` 或 clone 失敗，`vcs status src` 能列出各個來源的狀態。若你已有能正常運作的 `~/autoware.ai`，**先記錄版本及本地修改**，不要直接在原目錄覆蓋或重跑 `vcs import`。
 
 原版完整工作空間清單可參考 [Autoware.AI 1.14 官方 `autoware.ai.repos`](https://github.com/autowarefoundation/autoware_ai/blob/1.14.0/autoware.ai.repos)；本專案用的是較小的教學專用清單，不包括全部感測器、模擬、GNSS 及視覺化模組。
 
@@ -275,14 +357,14 @@ cd ~/autoware.ai
 rosdep check --from-paths $(colcon list --packages-up-to lidar_localizer --paths-only) --ignore-src --rosdistro melodic
 ```
 
-`rosdep check` 用於列出缺少的依賴；如已確認 apt source 可用，可讓 rosdep 安裝這次所需套件的依賴：
+`rosdep check` 用於**檢查**缺少的依賴，不負責安裝；第一次執行時若列出缺少的套件，不代表前面的 Ubuntu 匯入失敗。確認 ROS apt 套件源可用後，執行下方指令補齊需要的依賴：
 
 ```bash
 sudo apt install -y libgeographic-dev
 rosdep install -y --from-paths $(colcon list --packages-up-to lidar_localizer autoware_connector waypoint_maker pure_pursuit twist_filter --paths-only) --ignore-src --rosdistro melodic --skip-keys="geographiclib libgeographiclib-dev"
 ```
 
-若它在 EOL 套件源找不到特定依賴，請記下缺少的**具體套件名稱**，查核 ROS Melodic 封存套件來源，勿無限制重試。若出現 `lanelet2_extension` 找不到 `lanelet2_core`，先確認 `ros-melodic-lanelet2` 已安裝且成功 `source /opt/ros/melodic/setup.bash`。
+**成功判斷**：`rosdep install` 執行後沒有 `ERROR` 或 `Cannot locate rosdep definition`，可繼續編譯。必要時重新執行 `rosdep check`；若它在 EOL 套件源找不到特定依賴，請記下缺少的**具體套件名稱**查核來源，勿無限制重試。若出現 `lanelet2_extension` 找不到 `lanelet2_core`，先確認 `ros-melodic-lanelet2` 已安裝且成功 `source /opt/ros/melodic/setup.bash`。
 
 ### 3.4 選擇性編譯（CPU NDT + 離線導航）
 
@@ -293,7 +375,7 @@ colcon build --packages-up-to autoware_connector waypoint_maker pure_pursuit twi
 source ~/autoware.ai/install/setup.bash
 ```
 
-若記憶體充裕可以提高 `--parallel-workers`，WSL 記憶體不足時則保持 2。若有套件相依缺失，請先看 `colcon` 錯誤中的**第一個失敗 package**，不要盲目全量編譯。沒有必要在本階段編譯 `waypoint_planner`、GPU NDT 或整套 Autoware Runtime Manager。
+**成功判斷**：兩次 `colcon build` 都結束且輸出摘要包含 `Summary: ... packages finished`、**沒有 `packages failed`**，才進入 GUI 步驟。若有套件失敗，先看 `colcon` 錯誤中的**第一個失敗 package**，不要盲目全量編譯。`--parallel-workers 2` 適合記憶體較小的 WSL 電腦；沒有必要編譯 `waypoint_planner`、GPU NDT 或整套 Autoware Runtime Manager。
 
 每次開新 shell 需要 `source ~/autoware.ai/install/setup.bash`。若想自動載入，確認只有一行後加入 `~/.bashrc`：
 
@@ -311,6 +393,8 @@ rospack find twist_filter
 rospack find autoware_msgs
 ```
 
+**成功判斷**：上述五行都應輸出套件所在路徑，例如 `/home/autoware/autoware.ai/install/...`，**不應出現 `[rospack] Error: package ... not found`**。全部找到後，才能啟動學生版 GUI。
+
 ## 4. 執行學生版 GUI
 
 此 GUI 已放在 repository 的 `Autoware_GUI/`，可直接使用，不需要編譯：
@@ -321,6 +405,8 @@ source ~/autoware.ai/install/setup.bash
 cd ~/autoware-lite/Autoware_GUI
 python3 autoware_student_gui.py
 ```
+
+**成功判斷**：畫面會開啟 Autoware 學生版 GUI 視窗，沒有 `ModuleNotFoundError`、`ImportError` 或顯示環境錯誤；這代表 GUI 已能啟動，**不等於所有建圖／定位功能已經測試通過**，功能驗證請接著依第 5 節逐項進行。
 
 GUI 用 Python 3；`offline_nav_bridge.py` 會由 GUI 用 Python **2** 啟動，以對應 ROS Melodic。若終端機出現 `ModuleNotFoundError: PyQt5`，請確認 `sudo apt install python3-pyqt5`，並用系統 Python 3 而非其他 Conda／venv 執行。
 
