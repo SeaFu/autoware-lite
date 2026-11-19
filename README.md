@@ -147,7 +147,8 @@ wsl -d Autoware-18.04
 ```bash
 adduser cobe
 usermod -aG sudo cobe
-nano /etc/wsl.conf
+apt install gedit
+gedit /etc/wsl.conf
 ```
 
 寫入以下內容（若檔案已有其他 WSL 設定，請保留原有段落）：
