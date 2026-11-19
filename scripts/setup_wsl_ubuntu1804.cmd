@@ -15,8 +15,12 @@ echo.
 where wsl.exe >nul 2>&1
 if errorlevel 1 goto :wsl_unavailable
 
-wsl.exe --status
-if errorlevel 1 goto :wsl_unavailable
+rem A new machine intentionally has no Linux distro yet. The import wizard
+rem must NOT require an already-imported distro or a successful wsl --status.
+rem Some WSL versions report an error before the first distro is registered.
+echo [檢查] 已找到 wsl.exe。
+echo [提示] 如果這台電腦尚未匯入任何 Linux 發行版，這是正常的。
+echo        本精靈稍後會以 Ubuntu 18.04 rootfs 建立第一個發行版。
 
 set "DEFAULT_DIR=%USERPROFILE%\WSL\Autoware1804"
 set "DEFAULT_NAME=Autoware-18.04"
@@ -101,7 +105,7 @@ goto :finished
 
 :wsl_unavailable
 echo.
-echo [錯誤] WSL2 尚未準備好，或 wsl --status 執行失敗。
+echo [錯誤] Windows 找不到 wsl.exe，尚無法執行 Ubuntu 匯入。
 echo 請先以系統管理員身分開啟 Windows CMD，執行：
 echo   wsl --install --no-distribution
 echo 依照提示重新開機，然後再次執行本工具。
@@ -138,7 +142,9 @@ goto :error_exit
 :import_failed
 echo.
 echo [錯誤] wsl --import 執行失敗。請查看上方 Windows/WSL 訊息。
-echo 可能原因：名稱已存在、rootfs 無效、WSL2 未啟用、磁碟空間不足。
+echo 可能原因：名稱已存在、rootfs 無效、WSL2 核心／虛擬化未準備好、磁碟空間不足。
+echo 你可以在 Windows CMD 另外執行 wsl --status 與 wsl --list --verbose 取得診斷資訊。
+echo 注意：尚未安裝任何 Linux 發行版原本就是全新安裝的正常狀態。
 echo 注意：本工具不會自動刪除匯入過程建立的資料夾或任何 WSL 發行版。
 goto :error_exit
 
