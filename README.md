@@ -54,7 +54,10 @@ autoware-lite/                       # https://github.com/SeaFu/autoware-lite
 
 ### 1.1 啟用 WSL2（Windows CMD）
 
-先在 Windows 啟用 WSL2（未安裝者可依 [Microsoft WSL 官方說明](https://learn.microsoft.com/windows/wsl/install) 完成，必要時重新開機）。**如果你的電腦已經能正常執行 WSL2，可以略過此節，直接前往 1.2。**
+先在 Windows 啟用 WSL2（未安裝者可依 [Microsoft WSL 官方說明](https://learn.microsoft.com/windows/wsl/install) 完成，必要時重新開機）。**如果你的電腦已經能正常執行 WSL2，可以略過整個 1.1 節，直接前往 1.2；不需要重複安裝或啟用 Windows 功能。**
+
+> [!IMPORTANT]
+> **WSL2 啟用方式二選一：**優先使用下方的 `wsl --install --no-distribution`；只有這個指令不支援或執行失敗時，才改用後面的兩行 `dism.exe`。**成功完成其中一種方式，就不需要再執行另一種。**
 
 如果要依照本文件操作，請在 Windows 開始功能表搜尋 **`cmd`（命令提示字元）→「以系統管理員身分執行」**，輸入：
 
@@ -81,11 +84,20 @@ dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux 
 dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
 ```
 
-手動啟用後也需要重新開機，再執行 `wsl --update`、`wsl --set-default-version 2`。若仍無法啟用，先檢查 Windows 版本及 BIOS／UEFI 虛擬化功能，依 Microsoft 官方疑難排解處理。**不需同時執行上述兩種安裝方法。**
+手動啟用後也需要重新開機，再執行 `wsl --update`、`wsl --set-default-version 2`。若仍無法啟用，先檢查 Windows 版本及 BIOS／UEFI 虛擬化功能，依 Microsoft 官方疑難排解處理。**若前面的 `wsl --install --no-distribution` 已成功，請跳過這兩行 DISM 指令。**
 
 ### 1.2 匯入 Ubuntu 18.04 rootfs（推薦使用 CMD 精靈）
 
-下載課程簡報採用的 [Ubuntu 18.04 WSL rootfs](https://cloud-images.ubuntu.com/releases/bionic/release/ubuntu-18.04-server-cloudimg-amd64-wsl.rootfs.tar.gz)，放在 Windows `Downloads`。若檔案已移到封存或網址失效，請使用可信任的 Ubuntu 18.04 原始映像，勿任意改成 Ubuntu 22.04／24.04（與 Melodic 不相容）。
+> [!IMPORTANT]
+> **本節的「CMD 安裝精靈」和下方「PowerShell 手動匯入」是二選一，不是連續執行的兩個步驟。**
+>
+> 1. 先在 **Windows CMD** 執行 `wsl --list --verbose`，檢查是否已有目標發行版（預設名稱為 `Autoware-18.04`）。
+> 2. **如果已顯示 `Autoware-18.04` 且 VERSION 為 `2`：代表已匯入成功，請跳過整個 1.2 節，直接進入 [1.3 建立 Linux 使用者](#13-建立-linux-使用者)（若已有一般使用者，也不需重建）。**
+> 3. **如果尚未匯入：**請選擇 **方式 A（推薦）** 或 **方式 B（手動）**，只執行其中一種。成功後不要再執行另一種，以免遇到「發行版名稱已存在」或安裝資料夾非空白等錯誤。
+
+若尚未準備檔案，請下載課程簡報採用的 [Ubuntu 18.04 WSL rootfs](https://cloud-images.ubuntu.com/releases/bionic/release/ubuntu-18.04-server-cloudimg-amd64-wsl.rootfs.tar.gz)，放在 Windows `Downloads`；**若已有可用的 Ubuntu 18.04 rootfs 檔案，直接使用既有檔案即可，不必重複下載**。若檔案已移到封存或網址失效，請使用可信任的 Ubuntu 18.04 原始映像，勿任意改成 Ubuntu 22.04／24.04（與 Melodic 不相容）。
+
+#### 方式 A：使用 CMD 安裝精靈（推薦）
 
 下載本專案的 **[`setup_wsl_ubuntu1804.cmd`](scripts/setup_wsl_ubuntu1804.cmd)**（進入 GitHub 檔案頁面後按 **Download raw file**），儲存在 Windows 的 `Downloads`，確認副檔名為 `.cmd`（不要存成 `.txt`）。先用記事本查看內容，確認是本 Repository 提供的腳本。之後可在檔案總管**雙擊**，也可以開啟一般權限的 **Windows CMD（命令提示字元）**，貼上以下指令執行：
 
@@ -111,11 +123,11 @@ dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /nores
 > 確認 Windows 已有 WSL2、也已下載 Ubuntu 18.04 rootfs。
 
 > [!IMPORTANT]
-> 這個 `.cmd` **只負責建立 Ubuntu 18.04 的 WSL2 發行版**，不會自行建立 Linux 一般使用者或安裝 ROS／Autoware。成功匯入後，請繼續 **1.3 建立 Linux 使用者**及後面的 ROS 安裝章節。
+> 這個 `.cmd` **只負責建立 Ubuntu 18.04 的 WSL2 發行版**，不會自行建立 Linux 一般使用者或安裝 ROS／Autoware。**如果已用方式 A 成功匯入，請不要再執行下方方式 B 的 PowerShell 指令；直接前往 [1.3 建立 Linux 使用者](#13-建立-linux-使用者)**及後面的 ROS 安裝章節。
 
-#### 手動匯入方式（選用：供除錯與教學參考）
+#### 方式 B：PowerShell 手動匯入（僅供未使用方式 A 者選用）
 
-若不使用精靈，也能在 Windows **PowerShell** 手動執行。下面保留課程簡報原本的匯入步驟，並加入檔案存在性檢查。
+**只有尚未使用方式 A 成功匯入 Ubuntu 18.04，才需要以下指令。**若已完成方式 A，請跳過整個方式 B，直接前往 1.3。此處保留課程簡報原本的手動匯入步驟，供除錯與教學參考；以下指令請在 Windows **PowerShell** 執行，不是 CMD 或 Ubuntu 終端機。
 
 > [!WARNING]
 > 🟨 **請特別注意：`<WindowsUser>` 代表你電腦上的「Windows 使用者資料夾名稱」**，也就是 `C:\Users\` 後面的那一段，**不是 GitHub 帳號，也不是稍後建立的 Linux 使用者名稱**。
@@ -139,6 +151,8 @@ wsl -d Autoware-18.04
 其中 `Test-Path $UbuntuRootfs` 應顯示 `True`。如果是 `False`，表示下載檔案不在預期的 Downloads 資料夾；請先確認實際存放位置，再修改 `$UbuntuRootfs`，不要繼續匯入。
 
 `wsl --import` 不會自動建立一般 Linux 使用者。新匯入環境通常先以 `root` 開啟。
+
+**方式 B 成功匯入後，同樣直接進入 [1.3 建立 Linux 使用者](#13-建立-linux-使用者)，不需要回頭執行方式 A 的安裝精靈。**
 
 ### 1.3 建立 Linux 使用者
 
@@ -196,14 +210,23 @@ sudo apt install -y git cmake build-essential python-catkin-pkg python-rosdep \
   python3-colcon-common-extensions python3-vcstool
 ```
 
-第一次使用 `rosdep`：
+第一次使用 `rosdep`（**`sudo rosdep init` 只需執行一次**）：
 
 ```bash
 sudo rosdep init
-rosdep update
+rosdep update --include-eol-distros --rosdistro melodic
 ```
 
-若看到 `rosdep sources list file already exists`，表示之前初始化過，無須重複 `sudo rosdep init`；只要執行 `rosdep update`。
+> [!IMPORTANT]
+> **ROS Melodic 已停止維護（EOL）**，更新 rosdep 時需要加上 `--include-eol-distros`，才能包含 Melodic 的套件索引；`--rosdistro melodic` 表示只更新本教學需要的 ROS 發行版索引，減少不必要的下載。正常更新結果應包含 `Add distro "melodic"`，且最後沒有下載錯誤。
+
+若執行 `sudo rosdep init` 出現 `rosdep sources list file already exists`，代表**已初始化，不必重做這一步**。請直接執行：
+
+```bash
+rosdep update --include-eol-distros --rosdistro melodic
+```
+
+**不要再改用未加參數的 `rosdep update`**，否則可能略過已停止維護的 Melodic，造成後續 `Cannot locate rosdep definition` 等依賴解析問題。第 3.3 節的 `rosdep check` 用途是檢查依賴，仍照原指令執行即可；若實際缺少套件，再使用該節的 `rosdep install`。
 
 在新終端機用 `rosversion -d` 確認為 `melodic`。若要測試 ROS Master，可暫時執行 `roscore`，成功後 `Ctrl+C` 結束（**啟動 GUI 時不要另外留下重複的 master／localizer 節點**）。
 
