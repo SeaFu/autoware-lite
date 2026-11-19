@@ -255,7 +255,8 @@ rosdep check --from-paths $(colcon list --packages-up-to lidar_localizer --paths
 `rosdep check` 用於列出缺少的依賴；如已確認 apt source 可用，可讓 rosdep 安裝這次所需套件的依賴：
 
 ```bash
-rosdep install -y --from-paths $(colcon list --packages-up-to lidar_localizer autoware_connector waypoint_maker pure_pursuit twist_filter --paths-only) --ignore-src --rosdistro melodic
+sudo apt install -y libgeographic-dev
+rosdep install -y --from-paths $(colcon list --packages-up-to lidar_localizer autoware_connector waypoint_maker pure_pursuit twist_filter --paths-only) --ignore-src --rosdistro melodic --skip-keys="geographiclib libgeographiclib-dev"
 ```
 
 若它在 EOL 套件源找不到特定依賴，請記下缺少的**具體套件名稱**，查核 ROS Melodic 封存套件來源，勿無限制重試。若出現 `lanelet2_extension` 找不到 `lanelet2_core`，先確認 `ros-melodic-lanelet2` 已安裝且成功 `source /opt/ros/melodic/setup.bash`。
